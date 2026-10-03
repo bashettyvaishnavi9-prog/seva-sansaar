@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limiter";
 
 export const dynamic = "force-dynamic";
 import { businesses as seedBusinesses } from "@/lib/businessData";
@@ -56,6 +57,12 @@ function recordToHit(
 }
 
 export async function GET(req: NextRequest) {
+
+  const ip = getClientIp(req.headers);
+  const limitResult = checkRateLimit(`providers-nearby:${ip}`, RATE_LIMITS.DEFAULT.max, RATE_LIMITS.DEFAULT.windowMs);
+  if (!limitResult.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
   try {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q")?.toLowerCase();
@@ -178,3 +185,7 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+
+
+
